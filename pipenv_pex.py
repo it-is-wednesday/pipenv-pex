@@ -16,17 +16,16 @@ class StashAwayFiles:
     Context manager for temporarily moving away certain file in a directory.
     On exit, the files are moved back to their original home <3
 
-        >>> from pathlib import Path
-        >>> dir = Path("test")
-        >>> dir.mkdir(exist_ok=True)
-        >>> (dir / "in").touch()
-        >>> (dir / "bad").touch()
-        >>> with StashAwayFiles(dir, ["bad"]):
-        ...     print([x for x in dir.iterdir()])
+        >>> from pathlib import Path; import os
+        >>> Path("test").mkdir(exist_ok=True)
+        >>> Path("test/in").touch()
+        >>> Path("test/bad").touch()
+        >>> with StashAwayFiles(origin="test", ["bad"]):
+                os.listdir()
         ...
-        [PosixPath('test/in')]
-        >>> print([x for x in dir.iterdir()])
-        [PosixPath('test/in'), PosixPath('test/bad')]
+        ['test/in']
+        >>> os.listdir()
+        ['test/in', 'test/bad']
 
     """
     def __init__(self, origin, predicate: List[str]):
