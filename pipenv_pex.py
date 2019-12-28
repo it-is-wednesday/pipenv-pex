@@ -48,7 +48,10 @@ class StashAwayFiles:
             f.rename(f"{self.origin}/{f.name}")
 
 
-@c.command(context_settings={"ignore_unknown_options": True})
+@c.command(context_settings={
+    "help_option_names": ["-h", "--help"],
+    "ignore_unknown_options": True,
+})
 @c.option("-x",
           "--exclude",
           multiple=True,
