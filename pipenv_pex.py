@@ -1,6 +1,7 @@
 import tempfile
 from pathlib import Path
-from typing import List
+from sys import stderr
+from typing import Container, Iterable, List
 
 import click as c
 from pex.bin.pex import main as pex_main
@@ -48,6 +49,11 @@ class StashAwayFiles:
             f.rename(f"{self.origin}/{f.name}")
 
 
+def contains_any(container: Container, items: Iterable) -> bool:
+    "Check whether any if the items in @items exist in @container"
+    return any(item in container for item in items)
+
+
 @c.command(context_settings={
     "help_option_names": ["-h", "--help"],
     "ignore_unknown_options": True,
@@ -64,8 +70,13 @@ def main(exclude: List[str], pex_args):
     project = Project()
     proj_dir = project.project_directory
 
+    # check whether entry point was given
+    if not contains_any(pex_args, ["-m", "-e", "--entry-point"]):
+        print("No entry point (--entry-point) given!", file=stderr)
+        return
+
     # add inferred output filename if none were found in pex params
-    if not ("-o" in pex_args or "--output" in pex_args):
+    if not contains_any(pex_args, ["-o", "--output"]):
         output = f"{proj_dir}/{project.name}.pex"
         pex_args += ("--output", output)
 

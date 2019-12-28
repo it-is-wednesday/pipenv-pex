@@ -7,7 +7,7 @@ PEX files are an expansion upon [zipapp](https://docs.python.org/3/library/zipap
 ## Usage
 ``` shell
 cd project-with-pipfile
-pipenv-pex
+pipenv-pex --entry-point "epic_project:main"
 python ./project-with-pipfile.pex
 ```
 
