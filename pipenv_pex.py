@@ -4,7 +4,7 @@ from sys import stderr
 from typing import Container, Iterable, List
 
 import click as c
-from pex.bin.pex import main as pex_main
+from pex.bin.pex import main as pex_main  # type: ignore
 from pipenv.project import Project  # type: ignore
 
 FILES_IRRELEVANT_TO_PEX = [
@@ -66,7 +66,7 @@ def contains_any(container: Container, items: Iterable) -> bool:
           "excluded by deafult:\n{}.".format(
               ", ".join(FILES_IRRELEVANT_TO_PEX)))
 @c.argument("pex_args", nargs=-1, type=c.UNPROCESSED)
-def main(exclude: List[str], pex_args):
+def main(exclude: List[str], pex_args: tuple):
     project = Project()
     proj_dir = project.project_directory
 
