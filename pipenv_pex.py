@@ -1,5 +1,3 @@
-import re
-import sys
 import tempfile
 from pathlib import Path
 from typing import List
@@ -52,7 +50,6 @@ class StashAwayFiles:
 
 
 @c.command(context_settings={"ignore_unknown_options": True})
-@c.option("-e", "--entry-point")
 @c.option("-x",
           "--exclude",
           multiple=True,
@@ -61,23 +58,9 @@ class StashAwayFiles:
           "excluded by deafult:\n{}.".format(
               ", ".join(FILES_IRRELEVANT_TO_PEX)))
 @c.argument("pex_args", nargs=-1, type=c.UNPROCESSED)
-def main(entry_point, exclude: List[str], pex_args):
+def main(exclude: List[str], pex_args):
     project = Project()
     proj_dir = project.project_directory
-
-    if main and re.match(r"(.*\.)?.*:.*", entry_point) is None:
-        print(
-            "Entry point doesn't conform to template "
-            "'package.module:function'",
-            file=sys.stderr)
-        return
-
-    if not (main or Path(f"{proj_dir}/__main__.py").exists()):
-        print(
-            "Neither an entry point was given nor a __main__.py "
-            "file exists. I need something to work with!",
-            file=sys.stderr)
-        return
 
     # add inferred output filename if none were found in pex params
     if not ("-o" in pex_args or "--output" in pex_args):
