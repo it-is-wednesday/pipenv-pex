@@ -4,12 +4,25 @@ from sys import stderr
 from typing import Container, Iterable, List
 
 import click as c
+from colorama import Fore, Style  # type: ignore
 from pex.bin.pex import main as pex_main  # type: ignore
 from pipenv.project import Project  # type: ignore
 
 FILES_IRRELEVANT_TO_PEX = [
     "Pipfile", "Pipfile.lock", ".mypy_cache", "__pycache__"
 ]
+
+
+def info(object):
+    print(f"{Fore.GREEN}{object}{Style.RESET_ALL}")
+
+
+def warning(object):
+    print(f"{Fore.LIGHTYELLOW_EX}{object}{Style.RESET_ALL}")
+
+
+def error(object):
+    print(f"{Fore.RED}{object}{Style.RESET_ALL}", file=stderr)
 
 
 class StashAwayFiles:
@@ -29,8 +42,8 @@ class StashAwayFiles:
         ['test/in', 'test/bad']
 
     """
-    def __init__(self, origin, predicate: List[str]):
-        self.predicate = predicate
+    def __init__(self, origin, patterns: List[str]):
+        self.patterns = patterns
         self.origin = Path(origin)
 
     def __enter__(self):
@@ -40,8 +53,8 @@ class StashAwayFiles:
         # hide these files for a moment, meaning moving a pointer, we'll have
         # to pick a directory within the same filesystem we're currently on.
         self.tmpdir = tempfile.TemporaryDirectory(dir=str(Path.home()))
-        for f in self.origin.iterdir():
-            if f.name in self.predicate:
+        for pattern in self.patterns:
+            for f in self.origin.glob(pattern):
                 f.rename(f"{self.tmpdir.name}/{f.name}")
 
     def __exit__(self, type, value, traceback):
@@ -72,22 +85,34 @@ def main(exclude: List[str], pex_args: tuple):
 
     # check whether entry point was given
     if not contains_any(pex_args, ["-m", "-e", "--entry-point"]):
-        print("No entry point (--entry-point) given!", file=stderr)
-        return
+        error("No entry point (--entry-point) given!")
 
     # add inferred output filename if none were found in pex params
     if not contains_any(pex_args, ["-o", "--output"]):
         output = f"{proj_dir}/{project.name}.pex"
         pex_args += ("--output", output)
+        warning(f"Output is {output} since --output wasn't explicitly passed")
 
     deps = [
         f"{key}{value['version']}"
         for key, value in project.get_or_create_lockfile()["default"].items()
     ]
+    info("Dependencies found:{}\n- {}".format(Fore.WHITE, "\n- ".join(deps)))
 
     irrelevant = FILES_IRRELEVANT_TO_PEX + list(exclude)
+    info("Stashing away excluded files...")
+
+    outpath = Path(output)
+    if outpath.exists():
+        warning(f"{outpath.name} already exists, deleting it...")
+        outpath.unlink()
+
     with StashAwayFiles(proj_dir, irrelevant):
+        info("Running pex...")
         pex_main([*deps, "--sources-directory", proj_dir, *pex_args])
+        info("Popping back stashed files...")
+
+    print(Fore.GREEN + "Done!")
 
 
 if __name__ == '__main__':
