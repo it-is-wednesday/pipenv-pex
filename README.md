@@ -5,7 +5,8 @@ Pipenv projects using this one simple command!
 PEX files are an expansion upon [zipapp](https://docs.python.org/3/library/zipapp.html)s. You can bundle your application's modules along with their dependencies into one file, executable using a Python interpreter.
 
 ## Installation
-Using the lovely[pipx](https://github.com/pipxproject/pipx):
+Using the lovely [pipx](https://github.com/pipxproject/pipx):
+
 `pipx install pipenv-pex`
 
 ## Usage
