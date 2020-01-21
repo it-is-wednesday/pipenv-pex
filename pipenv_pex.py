@@ -86,6 +86,7 @@ def main(exclude: List[str], pex_args: tuple):
     # check whether entry point was given
     if not contains_any(pex_args, ["-m", "-e", "--entry-point"]):
         error("No entry point (--entry-point) given!")
+        return
 
     # add inferred output filename if none were found in pex params
     if not contains_any(pex_args, ["-o", "--output"]):
