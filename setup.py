@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pipenv-pex",
-    version="0.2",
+    version="0.2.1",
     author="Maor Kadosh",
     description="Generate Python executable files via PEX using info from Pipfile",
     long_description=long_description,
@@ -28,5 +28,5 @@ setuptools.setup(
         pipenv-pex=pipenv_pex.pipenv_pex:main
     """,
     include_package_data=True,
-    python_requires='>=3.7',
+    python_requires='>=3.5',
 )
