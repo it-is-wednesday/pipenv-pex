@@ -42,6 +42,7 @@ class StashAwayFiles:
         ['test/in', 'test/bad']
 
     """
+
     def __init__(self, origin, patterns: List[str]):
         self.patterns = patterns
         self.origin = Path(origin)
@@ -95,8 +96,9 @@ def main(exclude: List[str], pex_args: tuple):
         warning(f"Output is {output} since --output wasn't explicitly passed")
 
     deps = [
-        f"{key}{value['version']}"
-        for key, value in project.get_or_create_lockfile()["default"].items()
+        f"{name}{props['version']}"
+        for name, props in project.get_or_create_lockfile()["default"].items()
+        if props.get("editable") is None  # ignore packages installed with -e
     ]
     info("Dependencies found:{}\n- {}".format(Fore.WHITE, "\n- ".join(deps)))
 
