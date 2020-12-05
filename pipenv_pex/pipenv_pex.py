@@ -89,7 +89,8 @@ def main(exclude: List[str], pex_args: tuple):
         error("No entry point (--entry-point) given!")
         return
 
-    # add inferred output filename if none were found in pex params
+    # Check for -o and --output in pex_args and set 'output' variable to
+    # value that follows the -o or --output flag
     output = None
     output_flags = ["-o", "--output"]
     if contains_any(pex_args, output_flags):
@@ -99,17 +100,18 @@ def main(exclude: List[str], pex_args: tuple):
                     output = pex_args[pex_args.index(flag)+1]
                     break  # just return first hit
                 except ValueError:
-                    # not present
+                    # flag not present
                     pass
         except IndexError:
+            # no value following the flag, e.g. someone entered 'pipenv-pex -e <something> -o'
             pass
 
+    # if output flags were not found, set to default value
     if output is None:
         output = f"{proj_dir}/{project.name}.pex"
         pex_args += ("--output", output)
         warning(f"Output is {output} since --output wasn't explicitly passed")
 
-    print(output)
     deps = [
         f"{name}{props['version']}"
         for name, props in project.get_or_create_lockfile()["default"].items()
