@@ -90,11 +90,26 @@ def main(exclude: List[str], pex_args: tuple):
         return
 
     # add inferred output filename if none were found in pex params
-    if not contains_any(pex_args, ["-o", "--output"]):
+    output = None
+    output_flags = ["-o", "--output"]
+    if contains_any(pex_args, output_flags):
+        try:
+            for flag in output_flags:
+                try:
+                    output = pex_args[pex_args.index(flag)+1]
+                    break  # just return first hit
+                except ValueError:
+                    # not present
+                    pass
+        except IndexError:
+            pass
+
+    if output is None:
         output = f"{proj_dir}/{project.name}.pex"
         pex_args += ("--output", output)
         warning(f"Output is {output} since --output wasn't explicitly passed")
 
+    print(output)
     deps = [
         f"{name}{props['version']}"
         for name, props in project.get_or_create_lockfile()["default"].items()
