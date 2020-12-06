@@ -109,7 +109,7 @@ def main(exclude: List[str], pex_args: tuple):
     info("Dependencies found:{}\n- {}".format(Fore.WHITE, "\n- ".join(deps)))
 
     irrelevant = FILES_IRRELEVANT_TO_PEX + list(exclude)
-    info("Stashing away excluded files...")
+    info("Copying files to temp project directory...")
 
     outpath = Path(output)
     if outpath.exists():
@@ -119,7 +119,7 @@ def main(exclude: List[str], pex_args: tuple):
     with TempProjDir(proj_dir, irrelevant) as d:
         info("Running pex...")
         pex_main([*deps, "--sources-directory", d, *pex_args])
-        info("Cleaning up temp files...")
+        info("Cleaning up temp project directory...")
 
     print(Fore.GREEN + "Done!")
 
