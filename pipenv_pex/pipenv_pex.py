@@ -119,7 +119,7 @@ def main(exclude: List[str], pex_args: tuple):
     with TempProjDir(proj_dir, irrelevant) as d:
         info("Running pex...")
         pex_main([*deps, "--sources-directory", d, *pex_args])
-        info("Popping back stashed files...")
+        info("Cleaning up temp files...")
 
     print(Fore.GREEN + "Done!")
 
