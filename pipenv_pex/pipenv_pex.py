@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 from pathlib import Path
 from sys import stderr
@@ -9,7 +10,12 @@ from pex.bin.pex import main as pex_main  # type: ignore
 from pipenv.project import Project  # type: ignore
 
 FILES_IRRELEVANT_TO_PEX = [
-    "Pipfile", "Pipfile.lock", ".mypy_cache", "__pycache__"
+    "Pipfile",
+    "Pipfile.lock",
+    ".mypy_cache",
+    "__pycache__",
+    ".git*",
+    ".idea"
 ]
 
 
@@ -25,22 +31,10 @@ def error(object):
     print(f"{Fore.RED}{object}{Style.RESET_ALL}", file=stderr)
 
 
-class StashAwayFiles:
+class TempProjDir:
     """
-    Context manager for temporarily moving away certain file in a directory.
-    On exit, the files are moved back to their original home <3
-
-        >>> from pathlib import Path; import os
-        >>> Path("test").mkdir(exist_ok=True)
-        >>> Path("test/in").touch()
-        >>> Path("test/bad").touch()
-        >>> with StashAwayFiles(origin="test", ["bad"]):
-                os.listdir()
-        ...
-        ['test/in']
-        >>> os.listdir()
-        ['test/in', 'test/bad']
-
+    Context manager the creates a temp dir and copies current contents,
+    minus excluded patterns
     """
 
     def __init__(self, origin, patterns: List[str]):
@@ -48,19 +42,13 @@ class StashAwayFiles:
         self.origin = Path(origin)
 
     def __enter__(self):
-        # using home dir instead of /tmp becuase it's impossible to truly move
-        # files between different filesystems - moving a file pointer around is
-        # only possible within the same filesystem. since all we want is to
-        # hide these files for a moment, meaning moving a pointer, we'll have
-        # to pick a directory within the same filesystem we're currently on.
-        self.tmpdir = tempfile.TemporaryDirectory(dir=str(Path.home()))
-        for pattern in self.patterns:
-            for f in self.origin.glob(pattern):
-                f.rename(f"{self.tmpdir.name}/{f.name}")
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.dest = Path(self.tmpdir.name) / 'tmp_proj'
+        shutil.copytree(self.origin, self.dest, ignore=shutil.ignore_patterns(*self.patterns))
+        return self.dest
 
     def __exit__(self, type, value, traceback):
-        for f in Path(self.tmpdir.name).iterdir():
-            f.rename(f"{self.origin}/{f.name}")
+        self.tmpdir.cleanup()
 
 
 def contains_any(container: Container, items: Iterable) -> bool:
@@ -76,9 +64,10 @@ def contains_any(container: Container, items: Iterable) -> bool:
           "--exclude",
           multiple=True,
           help="Don't include these files/directories in the resulting .pex "
-          "file. In addition to files/dirs added using this option, these are "
-          "excluded by deafult:\n{}.".format(
+               "file. In addition to files/dirs added using this option, these are "
+               "excluded by default:\n{}.".format(
               ", ".join(FILES_IRRELEVANT_TO_PEX)))
+@c.version_option()
 @c.argument("pex_args", nargs=-1, type=c.UNPROCESSED)
 def main(exclude: List[str], pex_args: tuple):
     project = Project()
@@ -97,7 +86,7 @@ def main(exclude: List[str], pex_args: tuple):
         try:
             for flag in output_flags:
                 try:
-                    output = pex_args[pex_args.index(flag)+1]
+                    output = pex_args[pex_args.index(flag) + 1]
                     break  # just return first hit
                 except ValueError:
                     # flag not present
@@ -120,17 +109,17 @@ def main(exclude: List[str], pex_args: tuple):
     info("Dependencies found:{}\n- {}".format(Fore.WHITE, "\n- ".join(deps)))
 
     irrelevant = FILES_IRRELEVANT_TO_PEX + list(exclude)
-    info("Stashing away excluded files...")
+    info("Copying files to temp project directory...")
 
     outpath = Path(output)
     if outpath.exists():
         warning(f"{outpath.name} already exists, deleting it...")
         outpath.unlink()
 
-    with StashAwayFiles(proj_dir, irrelevant):
+    with TempProjDir(proj_dir, irrelevant) as d:
         info("Running pex...")
-        pex_main([*deps, "--sources-directory", proj_dir, *pex_args])
-        info("Popping back stashed files...")
+        pex_main([*deps, "--sources-directory", d, *pex_args])
+        info("Cleaning up temp project directory...")
 
     print(Fore.GREEN + "Done!")
 
